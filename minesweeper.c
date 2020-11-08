@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define MAP_SIZE 10
 
@@ -57,6 +58,7 @@ void clearMapMemory(MineSweeperMap *m) {
 }
 
 void generateMines(int minemap[MAP_SIZE][MAP_SIZE], int n) {
+    srand(time(NULL));
     for (int i = 0; i < n; i++) {
         int x = rand() % MAP_SIZE;
         int y = rand() % MAP_SIZE;
