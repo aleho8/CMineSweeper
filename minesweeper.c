@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #define MAP_SIZE 10
 
@@ -14,12 +15,20 @@ void generateMines(int minemap[MAP_SIZE][MAP_SIZE], int n);
 void displayMap(MineSweeperMap *m);
 int getNeighbours(int minemap[MAP_SIZE][MAP_SIZE], int x, int y);
 int checkGuess(MineSweeperMap *m, int x, int y);
+int saveProgress(MineSweeperMap *m, char *name);
+int loadProgress(MineSweeperMap *m, char *name);
+void getSubstr(char *s1, char *s2, char *str, char sub);
 
-int main() {
+int main(int argc, char *argv[]) {
     MineSweeperMap ms;
-    int nOfMines = 0;
-    while (nOfMines < 3 || nOfMines > 30) {
-        scanf("%d", &nOfMines);
+    if (argc <= 1) {
+        printf("Start parameter must be a number between 1 and 100.\n");
+        return 0;
+    }
+    int nOfMines = atoi(argv[1]);
+    if (nOfMines > 100 || nOfMines < 1) {
+        printf("Number of mines must be between 1 and 100.\n");
+        return 0;
     }
     clearMapMemory(&ms);
     generateMines(ms.mines, nOfMines);
@@ -29,18 +38,36 @@ int main() {
     int guesses = 0;
     while (!gameOver && !won) {
         char guess[100];
-        scanf("%s", guess);
-        int guessX = (int)guess[0] - 65;
-        char guessYtemp[2] = { guess[1], '\0' };
-        int guessY = atoi(guessYtemp);
-        if (guessY < 0 || guessY > 9 || guessX < 0 || guessX > 9) {
-            printf("Invalid input!");
-        }
-        else {
-            gameOver = checkGuess(&ms, guessX, guessY);
-            guesses++;
-            won = guesses == (MAP_SIZE * MAP_SIZE) - nOfMines;
-            displayMap(&ms);
+        if (gets(guess)) {
+            if (strlen(guess) > 2) {
+                char *command = (char *)malloc(sizeof(char));
+                char *filename = (char *)malloc(sizeof(char));
+                getSubstr(command, filename, guess, ' ');
+                printf("Parancs: %s\n", command);
+                printf("Filename: %s\n", filename);
+                if (!strcmp(command, "save")) {
+                    saveProgress(&ms, filename);
+                }
+                if (!strcmp(command, "load")) {
+                    loadProgress(&ms, filename);
+                }
+                free(command);
+                free(filename);
+            }
+            else {
+                int guessX = (int)guess[0] - 65;
+                char guessYtemp[2] = { guess[1], '\0' };
+                int guessY = atoi(guessYtemp);
+                if (guessY < 0 || guessY > 9 || guessX < 0 || guessX > 9) {
+                    printf("Invalid input!");
+                }
+                else {
+                    gameOver = checkGuess(&ms, guessX, guessY);
+                    guesses++;
+                    won = guesses == (MAP_SIZE * MAP_SIZE) - nOfMines;
+                    displayMap(&ms);
+                }
+            }
         }
     }
     if (gameOver) printf("Game over!\n");
@@ -58,7 +85,7 @@ void clearMapMemory(MineSweeperMap *m) {
 }
 
 void generateMines(int minemap[MAP_SIZE][MAP_SIZE], int n) {
-    srand(time(NULL));
+    srand(time(0));
     for (int i = 0; i < n; i++) {
         int x = rand() % MAP_SIZE;
         int y = rand() % MAP_SIZE;
@@ -171,4 +198,86 @@ int getNeighbours(int minemap[MAP_SIZE][MAP_SIZE], int x, int y) {
         }
     }
     return db;
+}
+
+  /*
+  * 0 = semmi, 1 = mine, 2 = tipp
+  * 00001200020
+  * 01122000000
+  *
+  *
+  */
+
+int saveProgress(MineSweeperMap *m, char *name) {
+  FILE *saveFile = fopen(name, "w+b");
+  if (!saveFile) {
+    printf("Error:  Couldn't open file for write!\n");
+    return 1;
+  }
+  for (int i = 0; i < MAP_SIZE; i++) {
+    char line[MAP_SIZE];
+    for (int j = 0; j < MAP_SIZE; j++) {
+      line[j] = m->mines[i][j] == 1 ? '1' : m->guesses[i][j] == 1 ? '2' : '0';
+    }
+    size_t rl = fwrite(line, sizeof line[0], MAP_SIZE, saveFile);
+    fputc('\n', saveFile);
+    if (rl < MAP_SIZE) return 1;
+  }
+  fclose(saveFile);
+  return 0;
+}
+
+
+int loadProgress(MineSweeperMap *m, char *name)
+{
+  FILE *loadFile = fopen(name, "r");
+  int conSize = MAP_SIZE*MAP_SIZE + MAP_SIZE;
+  char con[conSize];
+  if (loadFile == NULL)
+  {
+    printf("Error: The file does not exist!\n");
+    return 1;
+  }
+  else
+  {
+    fgets(con, conSize, loadFile);
+    int row = 0;
+    int col = 0;
+    for (int i = 0; i < con; i++)
+    {
+      if (con[i] == '\n')
+      {
+        row++;
+        col--;
+      }
+      else 
+      {
+        col = i % 10; 
+        m->mines[row][col] = con[i];
+      }
+
+    }
+  }
+  fclose(loadFile);
+  return 0;
+}
+
+void getSubstr(char *s1, char *s2, char *str, char sub) {
+    int s1l = 0;
+    int s2l = 0;
+    int foundSub = 0;
+    for (unsigned int i = 0; i < strlen(str); i++) {
+        if (!foundSub && str[i] != sub) {
+            s1[s1l] = str[i];
+            s1l++;
+            s1 = (char *)realloc(s1, sizeof(char) * (1 + s1l));
+        }
+        if(foundSub) {
+            s2[s2l] = str[i];
+            s2l++;
+            s2 = (char *)realloc(s2, sizeof(char) * (1 + s2l));
+        }
+        if (!foundSub) foundSub = str[i] == sub;
+    }
+    s1[s1l] = '\0';
 }
