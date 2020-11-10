@@ -229,9 +229,7 @@ int loadProgress(MineSweeperMap *m, char *name)
 {
   clearMapMemory(m);
   FILE *loadFile = fopen(name, "rb");
-  int conSize = MAP_SIZE*MAP_SIZE + MAP_SIZE;
   char c;
-  char con[conSize];
   if (loadFile == NULL)
   {
     printf("Error: The file does not exist!\n");
@@ -246,11 +244,11 @@ int loadProgress(MineSweeperMap *m, char *name)
       if (c == '\n')
       {
         row++;
-        col=0;
+        col = 0;
       }
       else 
       {
-        char con2[2] = {c, '\0'};
+        char con2[2] = { c, '\0' };
         int a = atoi(con2);
         m->mines[row][col] = a == 1 ? 1 : 0;
         m->guesses[row][col] = a == 2 ? 1 : 0;
