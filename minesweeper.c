@@ -43,14 +43,13 @@ int main(int argc, char *argv[]) {
                 char *command = (char *)malloc(sizeof(char));
                 char *filename = (char *)malloc(sizeof(char));
                 getSubstr(command, filename, guess, ' ');
-                printf("Parancs: %s\n", command);
-                printf("Filename: %s\n", filename);
                 if (!strcmp(command, "save")) {
                     saveProgress(&ms, filename);
                 }
                 if (!strcmp(command, "load")) {
                     loadProgress(&ms, filename);
                 }
+                displayMap(&ms);
                 free(command);
                 free(filename);
             }
@@ -204,8 +203,6 @@ int getNeighbours(int minemap[MAP_SIZE][MAP_SIZE], int x, int y) {
   * 0 = semmi, 1 = mine, 2 = tipp
   * 00001200020
   * 01122000000
-  *
-  *
   */
 
 int saveProgress(MineSweeperMap *m, char *name) {
@@ -230,8 +227,10 @@ int saveProgress(MineSweeperMap *m, char *name) {
 
 int loadProgress(MineSweeperMap *m, char *name)
 {
-  FILE *loadFile = fopen(name, "r");
+  clearMapMemory(m);
+  FILE *loadFile = fopen(name, "rb");
   int conSize = MAP_SIZE*MAP_SIZE + MAP_SIZE;
+  char c;
   char con[conSize];
   if (loadFile == NULL)
   {
@@ -240,23 +239,25 @@ int loadProgress(MineSweeperMap *m, char *name)
   }
   else
   {
-    fgets(con, conSize, loadFile);
     int row = 0;
     int col = 0;
-    for (int i = 0; i < con; i++)
+    while((c = fgetc(loadFile)) != EOF)
     {
-      if (con[i] == '\n')
+      if (c == '\n')
       {
         row++;
-        col--;
+        col=0;
       }
       else 
       {
-        col = i % 10; 
-        m->mines[row][col] = con[i];
+        char con2[2] = {c, '\0'};
+        int a = atoi(con2);
+        m->mines[row][col] = a == 1 ? 1 : 0;
+        m->guesses[row][col] = a == 2 ? 1 : 0;
+        col++;
       }
-
     }
+
   }
   fclose(loadFile);
   return 0;
